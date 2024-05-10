@@ -880,6 +880,14 @@ macedo_2019
     :undoc-members:
     :show-inheritance:
 
+macedo_2021
+----------------------------------------------------
+
+.. automodule:: openquake.hazardlib.gsim.macedo_2021
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mcverry_2006
 --------------------------------------------
 
@@ -1030,6 +1038,15 @@ rietbrock_edwards_2019
 ----------------------------------------------
 
 .. automodule:: openquake.hazardlib.gsim.rietbrock_edwards_2019
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+sandikkaya_akkar_2017
+-------------------------------------------
+
+.. automodule:: openquake.hazardlib.gsim.sandikkaya_akkar_2017
+
     :members:
     :undoc-members:
     :show-inheritance:

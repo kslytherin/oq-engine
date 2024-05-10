@@ -1,3 +1,11 @@
+  [Kyle Smith]
+  * Added a new gsim file macedo_2021.py to implement the
+    Arias Intensity and Cumulative Absoloute Velocity conditional 
+    ground motion models from Macedo et al. (2020).
+  * Added a new gsim file sandikkaya_2017.py to implement the
+    Arias Intensity and Cumulative Absoloute Velocity ground motion 
+    models from Sandikkaya and Akkar (2017).
+
   [Michele Simionato]
   * Added another check for missing gsim in scenario calculations
   * Using custom `hcurves` and `uhs` exporters in AELO mode

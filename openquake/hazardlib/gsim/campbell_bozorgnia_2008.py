@@ -34,12 +34,13 @@ def _compute_basin_response_term(C, z2pt5):
     fsed = np.zeros_like(z2pt5, dtype=float)
     idx = z2pt5 < 1.0
     if np.any(idx):
-        fsed[idx] = C['c11'] * (z2pt5[idx] - 1.0)
+        fsed[idx] = C["c11"] * (z2pt5[idx] - 1.0)
 
     idx = z2pt5 > 3.0
     if np.any(idx):
-        fsed[idx] = (C['c12'] * C['k3'] * exp(-0.75)) *\
-            (1.0 - np.exp(-0.25 * (z2pt5[idx] - 3.0)))
+        fsed[idx] = (C["c12"] * C["k3"] * exp(-0.75)) * (
+            1.0 - np.exp(-0.25 * (z2pt5[idx] - 3.0))
+        )
     return fsed
 
 
@@ -47,8 +48,9 @@ def _compute_distance_term(C, ctx):
     """
     Returns the distance scaling factor (equation (3), page 145)
     """
-    return (C['c4'] + C['c5'] * ctx.mag) * \
-        np.log(np.sqrt(ctx.rrup ** 2. + C['c6'] ** 2.))
+    return (C["c4"] + C["c5"] * ctx.mag) * np.log(
+        np.sqrt(ctx.rrup**2.0 + C["c6"] ** 2.0)
+    )
 
 
 def _compute_hanging_wall_term(C, ctx):
@@ -58,11 +60,13 @@ def _compute_hanging_wall_term(C, ctx):
     rupture depth and dip (equations 6 - 10, page 146). Individual
     scaling terms defined in separate functions
     """
-    return (C['c9'] *
-            _get_hanging_wall_distance_term(ctx) *
-            _get_hanging_wall_magnitude_term(ctx.mag) *
-            _get_hanging_wall_depth_term(ctx.ztor) *
-            _get_hanging_wall_dip_term(ctx.dip))
+    return (
+        C["c9"]
+        * _get_hanging_wall_distance_term(ctx)
+        * _get_hanging_wall_magnitude_term(ctx.mag)
+        * _get_hanging_wall_depth_term(ctx.ztor)
+        * _get_hanging_wall_dip_term(ctx.dip)
+    )
 
 
 def _compute_imt1100(C, ctx, get_pga_site=False):
@@ -70,14 +74,16 @@ def _compute_imt1100(C, ctx, get_pga_site=False):
     Computes the PGA on reference (Vs30 = 1100 m/s) rock.
     """
     # Calculates simple site response term assuming all sites 1100 m/s
-    fsite = (C['c10'] + (C['k2'] * C['n'])) * log(1100. / C['k1'])
+    fsite = (C["c10"] + (C["k2"] * C["n"])) * log(1100.0 / C["k1"])
     # Calculates the PGA on rock
-    pga1100 = np.exp(_compute_magnitude_term(C, ctx.mag) +
-                     _compute_distance_term(C, ctx) +
-                     _compute_style_of_faulting_term(C, ctx) +
-                     _compute_hanging_wall_term(C, ctx) +
-                     _compute_basin_response_term(C, ctx.z2pt5) +
-                     fsite)
+    pga1100 = np.exp(
+        _compute_magnitude_term(C, ctx.mag)
+        + _compute_distance_term(C, ctx)
+        + _compute_style_of_faulting_term(C, ctx)
+        + _compute_hanging_wall_term(C, ctx)
+        + _compute_basin_response_term(C, ctx.z2pt5)
+        + fsite
+    )
     # If PGA at the site is needed then remove factor for rock and
     # re-calculate on correct site condition
     if get_pga_site:
@@ -96,12 +102,11 @@ def _compute_intra_event_alpha(C, vs30, pga1100):
     on page 148
     """
     alpha = np.zeros_like(vs30, dtype=float)
-    idx = vs30 < C['k1']
+    idx = vs30 < C["k1"]
     if np.any(idx):
-        temp1 = (pga1100[idx] +
-                 C['c'] * (vs30[idx] / C['k1']) ** C['n']) ** -1.
-        temp1 = temp1 - ((pga1100[idx] + C['c']) ** -1.)
-        alpha[idx] = C['k2'] * pga1100[idx] * temp1
+        temp1 = (pga1100[idx] + C["c"] * (vs30[idx] / C["k1"]) ** C["n"]) ** -1.0
+        temp1 = temp1 - ((pga1100[idx] + C["c"]) ** -1.0)
+        alpha[idx] = C["k2"] * pga1100[idx] * temp1
 
     return alpha
 
@@ -112,27 +117,29 @@ def _compute_intra_event_std(C, vs30, pga1100, sigma_pga):
     equation 15, page 147
     """
     # Get intra-event standard deviation at the base of the site profile
-    sig_lnyb = np.sqrt(C['s_lny'] ** 2. - C['s_lnAF'] ** 2.)
-    sig_lnab = np.sqrt(sigma_pga ** 2. - C['s_lnAF'] ** 2.)
+    sig_lnyb = np.sqrt(C["s_lny"] ** 2.0 - C["s_lnAF"] ** 2.0)
+    sig_lnab = np.sqrt(sigma_pga**2.0 - C["s_lnAF"] ** 2.0)
     # Get linearised relationship between f_site and ln PGA
     alpha = _compute_intra_event_alpha(C, vs30, pga1100)
 
     return np.sqrt(
-        (sig_lnyb ** 2.) +
-        (C['s_lnAF'] ** 2.) +
-        ((alpha ** 2.) * (sig_lnab ** 2.)) +
-        (2.0 * alpha * C['rho'] * sig_lnyb * sig_lnab))
+        (sig_lnyb**2.0)
+        + (C["s_lnAF"] ** 2.0)
+        + ((alpha**2.0) * (sig_lnab**2.0))
+        + (2.0 * alpha * C["rho"] * sig_lnyb * sig_lnab)
+    )
 
 
 def _compute_magnitude_term(C, mag):
     """
     Returns the magnitude scaling factor (equation (2), page 144)
     """
-    fmag = C['c0'] + C['c1'] * mag
-    term = C['c2'] * (mag - 5.5)
-    term[mag <= 5.5] = 0.
-    term[mag > 6.5] = C['c2'] * (mag[mag > 6.5] - 5.5) + (
-        C['c3'] * (mag[mag > 6.5] - 6.5))
+    fmag = C["c0"] + C["c1"] * mag
+    term = C["c2"] * (mag - 5.5)
+    term[mag <= 5.5] = 0.0
+    term[mag > 6.5] = C["c2"] * (mag[mag > 6.5] - 5.5) + (
+        C["c3"] * (mag[mag > 6.5] - 6.5)
+    )
     return fmag + term
 
 
@@ -140,22 +147,21 @@ def _compute_shallow_site_response(C, ctx, pga1100):
     """
     Returns the shallow site response term (equation 11, page 146)
     """
-    stiff_factor = C['c10'] + (C['k2'] * C['n'])
+    stiff_factor = C["c10"] + (C["k2"] * C["n"])
     # Initially default all sites to intermediate rock value
-    fsite = stiff_factor * np.log(ctx.vs30 / C['k1'])
+    fsite = stiff_factor * np.log(ctx.vs30 / C["k1"])
     # Check for soft soil ctx
-    idx = ctx.vs30 < C['k1']
+    idx = ctx.vs30 < C["k1"]
     if np.any(idx):
-        pga_scale = np.log(pga1100[idx] +
-                           (C['c'] * ((ctx.vs30[idx] / C['k1']) **
-                            C['n']))) - np.log(pga1100[idx] + C['c'])
-        fsite[idx] = C['c10'] * np.log(ctx.vs30[idx] / C['k1']) + \
-            (C['k2'] * pga_scale)
+        pga_scale = np.log(
+            pga1100[idx] + (C["c"] * ((ctx.vs30[idx] / C["k1"]) ** C["n"]))
+        ) - np.log(pga1100[idx] + C["c"])
+        fsite[idx] = C["c10"] * np.log(ctx.vs30[idx] / C["k1"]) + (C["k2"] * pga_scale)
     # Any very hard rock ctx are rendered to the constant amplification
     # factor
-    idx = ctx.vs30 >= 1100.
+    idx = ctx.vs30 >= 1100.0
     if np.any(idx):
-        fsite[idx] = stiff_factor * log(1100. / C['k1'])
+        fsite[idx] = stiff_factor * log(1100.0 / C["k1"])
 
     return fsite
 
@@ -168,9 +174,9 @@ def _compute_style_of_faulting_term(C, ctx):
     frv, fnm = _get_fault_type_dummy_variables(ctx.rake)
     ffltz = np.zeros_like(ctx.rake)
     # Top of rupture depth term only applies to reverse faults
-    ffltz[(frv > 0.) & (ctx.ztor < 1)] = ctx.ztor[(frv > 0.) & (ctx.ztor < 1)]
-    ffltz[(frv > 0.) & (ctx.ztor >= 1)] = 1.
-    return C['c7'] * frv * ffltz + C['c8'] * fnm
+    ffltz[(frv > 0.0) & (ctx.ztor < 1)] = ctx.ztor[(frv > 0.0) & (ctx.ztor < 1)]
+    ffltz[(frv > 0.0) & (ctx.ztor >= 1)] = 1.0
+    return C["c7"] * frv * ffltz + C["c8"] * fnm
 
 
 def _get_fault_type_dummy_variables(rake):
@@ -184,8 +190,8 @@ def _get_fault_type_dummy_variables(rake):
         FRV, FNM
     """
     frv, fnm = np.zeros_like(rake), np.zeros_like(rake)
-    frv[(rake > 30.0) & (rake < 150.)] = 1.
-    fnm[(rake > -150.) & (rake < -30.)] = 1.
+    frv[(rake > 30.0) & (rake < 150.0)] = 1.0
+    fnm[(rake > -150.0) & (rake < -30.0)] = 1.0
     return frv, fnm
 
 
@@ -193,7 +199,7 @@ def _get_hanging_wall_depth_term(ztor):
     """
     Returns the hanging wall depth scaling term (equation 9, page 146)
     """
-    return np.where(ztor >= 20.0, 0., (20. - ztor) / 20.0)
+    return np.where(ztor >= 20.0, 0.0, (20.0 - ztor) / 20.0)
 
 
 def _get_hanging_wall_dip_term(dip):
@@ -208,11 +214,11 @@ def _get_hanging_wall_distance_term(ctx):
     Returns the hanging wall distance scaling term (equation 7, page 146)
     """
     fhngr = np.ones_like(ctx.rjb, dtype=float)
-    idx = (ctx.rjb > 0.) & (ctx.ztor < 1)
-    temp_rjb = np.sqrt(ctx.rjb[idx] ** 2. + 1.)
+    idx = (ctx.rjb > 0.0) & (ctx.ztor < 1)
+    temp_rjb = np.sqrt(ctx.rjb[idx] ** 2.0 + 1.0)
     r_max = np.max(np.column_stack([ctx.rrup[idx], temp_rjb]), axis=1)
     fhngr[idx] = (r_max - ctx.rjb[idx]) / r_max
-    idx = (ctx.rjb > 0.) & (ctx.ztor >= 1)
+    idx = (ctx.rjb > 0.0) & (ctx.ztor >= 1)
     fhngr[idx] = (ctx.rrup[idx] - ctx.rjb[idx]) / ctx.rrup[idx]
     return fhngr
 
@@ -221,7 +227,7 @@ def _get_hanging_wall_magnitude_term(mag):
     """
     Returns the hanging wall magnitude scaling term (equation 8, page 146)
     """
-    return np.clip(2. * (mag - 6.0), 0., 1.)
+    return np.clip(2.0 * (mag - 6.0), 0.0, 1.0)
 
 
 def _get_stddevs(kind, C, ctx, pga1100, sigma_pga):
@@ -231,9 +237,8 @@ def _get_stddevs(kind, C, ctx, pga1100, sigma_pga):
     to 151
     """
     std_intra = _compute_intra_event_std(C, ctx.vs30, pga1100, sigma_pga)
-    std_inter = C['t_lny'] * np.ones_like(ctx.vs30)
-    return [_get_total_sigma(kind, C, std_intra, std_inter),
-            std_inter, std_intra]
+    std_inter = C["t_lny"] * np.ones_like(ctx.vs30)
+    return [_get_total_sigma(kind, C, std_intra, std_inter), std_inter, std_intra]
 
 
 def _get_total_sigma(kind, C, std_intra, std_inter):
@@ -244,9 +249,9 @@ def _get_total_sigma(kind, C, std_intra, std_inter):
     definition, in which case the total sigma is modified (see
     equation 18, page 150).
     """
-    tot2 = std_intra ** 2. + std_inter ** 2.
-    if kind == 'arbitrary':
-        return np.sqrt(tot2 + C['c_lny'] ** 2.)
+    tot2 = std_intra**2.0 + std_inter**2.0
+    if kind == "arbitrary":
+        return np.sqrt(tot2 + C["c_lny"] ** 2.0)
     return np.sqrt(tot2)
 
 
@@ -262,10 +267,11 @@ class CampbellBozorgnia2008(GMPE):
     Included in the coefficient set are the coefficients for the
     Campbell & Bozorgnia (2010) GMPE for predicting Cumulative Absolute
     Velocity (CAV), published as "A Ground Motion Prediction Equation for
-    the Horizontal Component of Cumulative Absolute Velocity (CSV) Based on
+    the Horizontal Component of Cumulative Absolute Velocity (CAV) Based on
     the PEER-NGA Strong Motion Database" (2010, Earthquake Spectra, Volume 26,
     Number 3, 635 - 650).
     """
+
     kind = "base"
 
     #: Supported tectonic region type is active shallow crust
@@ -284,17 +290,20 @@ class CampbellBozorgnia2008(GMPE):
     #: Supported standard deviation types are inter-event, intra-event
     #: and total, see section "Aleatory Uncertainty Model", page 147.
     DEFINED_FOR_STANDARD_DEVIATION_TYPES = {
-        const.StdDev.TOTAL, const.StdDev.INTER_EVENT, const.StdDev.INTRA_EVENT}
+        const.StdDev.TOTAL,
+        const.StdDev.INTER_EVENT,
+        const.StdDev.INTRA_EVENT,
+    }
 
     #: Required site parameters are Vs30, Vs30 type (measured or inferred),
     #: and depth (km) to the 2.5 km/s shear wave velocity layer (z2pt5)
-    REQUIRES_SITES_PARAMETERS = {'vs30', 'z2pt5'}
+    REQUIRES_SITES_PARAMETERS = {"vs30", "z2pt5"}
 
     #: Required rupture parameters are magnitude, rake, dip, ztor
-    REQUIRES_RUPTURE_PARAMETERS = {'mag', 'rake', 'dip', 'ztor'}
+    REQUIRES_RUPTURE_PARAMETERS = {"mag", "rake", "dip", "ztor"}
 
     #: Required distance measures are Rrup and Rjb.
-    REQUIRES_DISTANCES = {'rrup', 'rjb'}
+    REQUIRES_DISTANCES = {"rrup", "rjb"}
 
     def compute(self, ctx: np.recarray, imts, mean, sig, tau, phi):
         """
@@ -316,12 +325,14 @@ class CampbellBozorgnia2008(GMPE):
             pga1100, pga_site = _compute_imt1100(C_PGA, ctx, get_pga_site)
 
             # Get the median ground motion
-            mean[m] = (_compute_magnitude_term(C, ctx.mag) +
-                       _compute_distance_term(C, ctx) +
-                       _compute_style_of_faulting_term(C, ctx) +
-                       _compute_hanging_wall_term(C, ctx) +
-                       _compute_shallow_site_response(C, ctx, pga1100) +
-                       _compute_basin_response_term(C, ctx.z2pt5))
+            mean[m] = (
+                _compute_magnitude_term(C, ctx.mag)
+                + _compute_distance_term(C, ctx)
+                + _compute_style_of_faulting_term(C, ctx)
+                + _compute_hanging_wall_term(C, ctx)
+                + _compute_shallow_site_response(C, ctx, pga1100)
+                + _compute_basin_response_term(C, ctx.z2pt5)
+            )
 
             # If it is necessary to ensure that Sa(T) >= PGA
             # (see previous comment)
@@ -330,9 +341,12 @@ class CampbellBozorgnia2008(GMPE):
                 mean[m, idx] = np.log(pga_site[idx])
 
             sig[m], tau[m], phi[m] = _get_stddevs(
-                self.kind, C, ctx, pga1100, C_PGA['s_lny'])
+                self.kind, C, ctx, pga1100, C_PGA["s_lny"]
+            )
 
-    COEFFS = CoeffsTable(sa_damping=5, table="""\
+    COEFFS = CoeffsTable(
+        sa_damping=5,
+        table="""\
       imt      c0     c1      c2      c3      c4    c5    c6     c7      c8     c9     c10    c11   c12    k1      k2     k3     c     n  s_lny  t_lny s_lnAF  c_lny    rho
       cav  -4.354  0.942  -0.178  -0.346  -1.309 0.087  7.24  0.111  -0.108  0.362   2.549  0.090  1.277  400  -2.690  1.000  1.88  1.18  0.371  0.196  0.300  0.089  0.735
       pgd  -5.270  1.600  -0.070   0.000  -2.000  0.17  4.00  0.000   0.000  0.000  -0.820  0.300  1.000  400   0.000  2.744  1.88  1.18  0.667  0.485  0.300  0.290  0.174
@@ -359,7 +373,8 @@ class CampbellBozorgnia2008(GMPE):
     5.000 -11.684  1.600  -0.070  -0.986  -2.000  0.17  4.00  0.000   0.000  0.000  -0.820  0.300  1.000  400   0.000  2.291  1.88  1.18  0.601  0.359  0.300  0.237  0.200
     7.500 -12.505  1.600  -0.070  -0.656  -2.000  0.17  4.00  0.000   0.000  0.000  -0.820  0.300  1.000  400   0.000  2.517  1.88  1.18  0.628  0.428  0.300  0.271  0.174
     10.00 -13.087  1.600  -0.070  -0.422  -2.000  0.17  4.00  0.000   0.000  0.000  -0.820  0.300  1.000  400   0.000  2.744  1.88  1.18  0.667  0.485  0.300  0.290  0.174
-    """)
+    """,
+    )
 
 
 class CampbellBozorgnia2008Arbitrary(CampbellBozorgnia2008):
@@ -369,6 +384,7 @@ class CampbellBozorgnia2008Arbitrary(CampbellBozorgnia2008):
     Rotationally Independent Geometric Mean (GMRotI) originally defined in
     the paper.
     """
+
     kind = "arbitrary"
 
     #: Supported intensity measure component is arbitrary horizontal
