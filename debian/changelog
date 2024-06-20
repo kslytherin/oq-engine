@@ -1,3 +1,8 @@
+  [Kyle Smith]
+  * Added a new gsim file macedo_2021.py to implement the
+    Arias Intensity and Cumulative Absoloute Velocity conditional 
+    ground motion models from Macedo et al. (2020).
+
   [Michele Simionato]
   * Raised the limit on the product `num_assets * num_rlzs` when using
     full enumeration by a factor of 10
