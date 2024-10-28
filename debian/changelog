@@ -1,3 +1,8 @@
+  [Kyle Smith]
+  * Added a new gsim file bullock_2021.py to implement the
+    Cumulative Absolute Velocity ground motion
+    models from Bullock 2021.
+
   [Michele Simionato]
   * Added an exporter for trt_gsim
   * Internal: added utility function readinput.read_source_models
